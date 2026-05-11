@@ -1,4 +1,4 @@
-name: Build APK Final 2026
+name: Build APK Fast
 on: [push, pull_request]
 
 jobs:
@@ -9,20 +9,21 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Fix Apt and Install Dependencies
-        run: |
-          # حل مشكلة exit code 100 بتنظيف الـ apt أولاً
-          sudo rm -rf /var/lib/apt/lists/*
-          sudo apt update
-          sudo apt install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
-          pip3 install --user buildozer cython==0.29.33 virtualenv
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-      - name: Build APK
+      - name: Install Buildozer
         run: |
-          export PATH=$PATH:$HOME/.local/bin
-          # إنشاء الملف إذا فُقد بمواصفات تطبيقك
-          if [ ! -f buildozer.spec ]; then
-            cat <<EOT > buildozer.spec
+          pip install --user buildozer cython==0.29.33 virtualenv
+          # إضافة المسار فوراً لضمان التعرف على الأداة
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Build with Buildozer
+        run: |
+          # إنشاء ملف الإعدادات فوراً وبقوة إذا لم يجد السيرفر ملفك
+          cat <<EOT > buildozer.spec
           [app]
           title = Yemen Vault
           package.name = yemenivault
@@ -36,10 +37,10 @@ jobs:
           android.api = 31
           android.archs = arm64-v8a
           EOT
-          fi
-          # تشغيل البناء مع الموافقة التلقائية على شروط أندرويد
-          yes | python3 -m buildozer -v android debug
-
+          
+          # أمر البناء المباشر مع الموافقة التلقائية
+          yes | buildozer -v android debug
+        
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
