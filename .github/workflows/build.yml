@@ -1,4 +1,4 @@
-name: Build APK Final
+name: Build APK Fixed
 on: [push, pull_request]
 
 jobs:
@@ -13,36 +13,24 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
-          pip3 install --user --upgrade buildozer cython==0.29.33 virtualenv
-
-      - name: Create Buildozer Spec
-        run: |
-          # هذا السطر يضمن وجود الملف حتى لو نسيته في المستودع
-          if [ ! -f buildozer.spec ]; then
-            cat <<EOT > buildozer.spec
-          [app]
-          title = Yemeni Vault
-          package.name = yemenivault
-          package.domain = org.yemen
-          source.dir = .
-          source.include_exts = py,png,jpg,ttf
-          version = 1.0.0
-          requirements = python3,kivy,cryptography,arabic_reshaper,python-bidi
-          orientation = portrait
-          android.permissions = READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE
-          android.api = 31
-          android.archs = arm64-v8a
-          EOT
-          fi
+          # تثبيت buildozer و cython
+          pip3 install --user buildozer cython==0.29.33 virtualenv
 
       - name: Build APK
         run: |
+          # تعريف المسار يدوياً في هذه الخطوة لضمان عمل buildozer
           export PATH=$PATH:$HOME/.local/bin
-          # استخدام --verbose لمراقبة كل تفصيلة ولتجاوز أخطاء الـ root
-          buildozer --verbose android debug
-
+          
+          # إنشاء ملف spec إذا لم يكن موجوداً
+          if [ ! -f buildozer.spec ]; then
+            python3 -m buildozer init
+          fi
+          
+          # استدعاء بايثون لتشغيل مودويل buildozer مباشرة لتجنب خطأ "not found"
+          python3 -m buildozer -v android debug
+        
       - name: Upload APK
         uses: actions/upload-artifact@v2
         with:
-          name: package
+          name: yemen-vault-app
           path: bin/*.apk
