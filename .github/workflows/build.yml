@@ -1,4 +1,4 @@
-name: Build APK Fast
+name: Build APK Force
 on: [push, pull_request]
 
 jobs:
@@ -12,17 +12,17 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.10'
 
-      - name: Install Buildozer
+      - name: Install Buildozer and Dependencies
         run: |
+          # تثبيت المكتبات الأساسية بدون تحديث النظام لتجنب خطأ 100
           pip install --user buildozer cython==0.29.33 virtualenv
-          # إضافة المسار فوراً لضمان التعرف على الأداة
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Build with Buildozer
         run: |
-          # إنشاء ملف الإعدادات فوراً وبقوة إذا لم يجد السيرفر ملفك
+          # إنشاء ملف الإعدادات داخل السيرفر لضمان وجوده
           cat <<EOT > buildozer.spec
           [app]
           title = Yemen Vault
@@ -37,8 +37,12 @@ jobs:
           android.api = 31
           android.archs = arm64-v8a
           EOT
+
+          # السر هنا: استخدام سطر يخبر buildozer أننا نعرف مخاطر الـ root ولكن استمر
+          export PATH=$PATH:$HOME/.local/bin
+          buildozer --version
           
-          # أمر البناء المباشر مع الموافقة التلقائية
+          # إجبار البناء على الاستمرار حتى لو كان root
           yes | buildozer -v android debug
         
       - name: Upload APK
