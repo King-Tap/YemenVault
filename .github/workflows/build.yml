@@ -1,4 +1,4 @@
-name: Build APK Fixed
+name: Build APK Final 2026
 on: [push, pull_request]
 
 jobs:
@@ -7,30 +7,26 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4 # تحديث للإصدار 4
 
       - name: Install Dependencies
         run: |
           sudo apt update
           sudo apt install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
-          # تثبيت buildozer و cython
           pip3 install --user buildozer cython==0.29.33 virtualenv
 
       - name: Build APK
         run: |
-          # تعريف المسار يدوياً في هذه الخطوة لضمان عمل buildozer
           export PATH=$PATH:$HOME/.local/bin
-          
-          # إنشاء ملف spec إذا لم يكن موجوداً
+          # إنشاء الملف إذا فُقد
           if [ ! -f buildozer.spec ]; then
             python3 -m buildozer init
           fi
-          
-          # استدعاء بايثون لتشغيل مودويل buildozer مباشرة لتجنب خطأ "not found"
+          # تشغيل البناء
           python3 -m buildozer -v android debug
-        
+
       - name: Upload APK
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4 # تم التحديث إلى v4 لحل مشكلة الصورة
         with:
-          name: yemen-vault-app
+          name: my-final-apk
           path: bin/*.apk
