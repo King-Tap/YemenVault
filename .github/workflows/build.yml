@@ -1,28 +1,32 @@
-name: Build APK Force
+name: Build APK Suicide Mode
 on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04 # النسخة الأكثر استقراراً لأدوات الأندرويد
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Install Buildozer and Dependencies
+      - name: Install Critical Dependencies
         run: |
-          # تثبيت المكتبات الأساسية بدون تحديث النظام لتجنب خطأ 100
-          pip install --user buildozer cython==0.29.33 virtualenv
+          sudo apt update
+          sudo apt install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+          # تثبيت نسخ محددة من الأدوات لضمان التوافق مع التشفير والخط العربي
+          pip install --user Cython==0.29.33 buildozer==1.5.0 virtualenv
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Build with Buildozer
+      - name: Force Create Buildozer Spec
         run: |
-          # إنشاء ملف الإعدادات داخل السيرفر لضمان وجوده
+          # مسح أي مخلفات قديمة
+          rm -f buildozer.spec
+          # كتابة ملف إعدادات "انتحاري" يحدد كل شيء يدوياً
           cat <<EOT > buildozer.spec
           [app]
           title = Yemen Vault
@@ -31,22 +35,29 @@ jobs:
           source.dir = .
           source.include_exts = py,png,jpg,ttf
           version = 1.0.0
-          requirements = python3,kivy,cryptography,arabic_reshaper,python-bidi
+          requirements = python3,kivy==2.2.1,cryptography,arabic_reshaper,python-bidi
           orientation = portrait
           android.permissions = READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE
           android.api = 31
+          android.minapi = 21
+          android.ndk = 25b
           android.archs = arm64-v8a
+          p4a.branch = master
+          # منع التوقف عند تحذيرات الـ root
+          warn_on_root = 0
           EOT
 
-          # السر هنا: استخدام سطر يخبر buildozer أننا نعرف مخاطر الـ root ولكن استمر
+      - name: The Suicide Build
+        run: |
           export PATH=$PATH:$HOME/.local/bin
-          buildozer --version
-          
-          # إجبار البناء على الاستمرار حتى لو كان root
-          yes | buildozer -v android debug
+          # تنظيف بيئة العمل
+          rm -rf .buildozer/
+          # تشغيل البناء مع أمر إجباري لتجاهل أخطاء الـ root والموافقة على كل شيء
+          # واستخدام محرك أندرويد محدد
+          APP_ANDROID_ACCEPT_SDK_LICENSE=1 buildozer -v android debug
         
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: yemen-vault-apk
+          name: final-yemen-vault-apk
           path: bin/*.apk
